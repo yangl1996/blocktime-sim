@@ -1,0 +1,35 @@
+This is a simulation that demos the effect of block time in interactive
+applications.
+
+To change parameters, look at this section of the code.
+
+    // 100 ticks per second
+    if g.currentTick - g.lastBun >= 1 { // block time = 10ms
+        g.lastBun = g.currentTick
+        g.bunX, g.bunY = g.b.read(10) // network propagation time = 100ms
+    }
+
+The line
+
+    if g.currentTick - g.lastBun >= 1
+
+controls block time. Replacing the number 1 with number x sets block time to
+x*10 milliseconds.
+
+The line
+
+    g.bunX, g.bunY = g.b.read(10) // network propagation time = 100ms
+
+controls network propagation time, i.e., the time it takes for a transaction to
+travel from users's computer to the sequencer and for the response to get back.
+Replacing the number 10 with y sets network propagation time to y*10
+milliseconds.
+
+To run the simulation locally, download this directory and run the following
+command. You will need to have go (Golang) installed.
+
+    go build && ./blocktime-sim
+
+It is also possible to host the simulation in a web page by compiling it to
+Webassembly. There are instructions at
+https://ebitengine.org/en/documents/webassembly.html.

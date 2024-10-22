@@ -18,17 +18,21 @@ import (
 	"fmt"
 	"image"
 	"log"
-	"os"
+	"embed"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 )
 
+
+//go:embed carrot.png
+//go:embed bunny.png
+var fs embed.FS
 var carrot *ebiten.Image
 var bunny *ebiten.Image 
 
 func init() {
-	f, err := os.Open("carrot.png")
+	f, err := fs.Open("carrot.png")
     if err != nil {
 		panic(err)
     }
@@ -39,7 +43,7 @@ func init() {
     }
 	carrot = ebiten.NewImageFromImage(c)
 
-	f2, err := os.Open("bunny.png")
+	f2, err := fs.Open("bunny.png")
     if err != nil {
 		panic(err)
     }
@@ -53,7 +57,6 @@ func init() {
 
 const (
 //	screenWidth  = 640
-//	screenWidth  = 220
 //	screenHeight = 480
 	screenWidth  = 330
 	screenHeight = 360
@@ -116,11 +119,11 @@ func (g *Game) Update() error {
 
 func (g *Game) Draw(screen *ebiten.Image) {
 	op := &ebiten.DrawImageOptions{}
-	op.GeoM.Translate(float64(g.carrotX), float64(g.carrotY))
+	op.GeoM.Translate(float64(g.carrotX-28), float64(g.carrotY-110))
 	screen.DrawImage(carrot, op)
 
 	op = &ebiten.DrawImageOptions{}
-	op.GeoM.Translate(float64(g.bunX+50), float64(g.bunY+10))
+	op.GeoM.Translate(float64(g.bunX+50-28), float64(g.bunY+10-110))
 	screen.DrawImage(bunny, op)
 
 	ebitenutil.DebugPrint(screen,
