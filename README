@@ -10,5 +10,11 @@ start the simulation with the following command.
     ./blocktime-sim -n 50ms -b 1s
 
 It is also possible to host the simulation in a web page by compiling it to
-Webassembly. There are instructions at
-https://ebitengine.org/en/documents/webassembly.html.
+Webassembly. Use the following command.
+
+    GOOS=js GOARCH=wasm go build -o sim.wasm
+
+To host the web page, serve sim.wasm along with main.html, index.html, and
+wasm_exec.js with an HTTP server. Notice that the server must recognize .wasm
+file extension and serve it with MIME type application/wasm.
+
