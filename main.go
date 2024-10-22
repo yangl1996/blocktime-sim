@@ -15,49 +15,51 @@
 package main
 
 import (
+	"embed"
+	"flag"
 	"fmt"
 	"image"
-	"log"
-	"embed"
+	"time"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 )
 
-
 //go:embed carrot.png
 //go:embed bunny.png
 var fs embed.FS
 var carrot *ebiten.Image
-var bunny *ebiten.Image 
+var bunny *ebiten.Image
+var networkTicks int
+var blocktimeTicks int
 
 func init() {
 	f, err := fs.Open("carrot.png")
-    if err != nil {
+	if err != nil {
 		panic(err)
-    }
-    defer f.Close()
-    c, _, err := image.Decode(f)
-    if err != nil {
+	}
+	defer f.Close()
+	c, _, err := image.Decode(f)
+	if err != nil {
 		panic(err)
-    }
+	}
 	carrot = ebiten.NewImageFromImage(c)
 
 	f2, err := fs.Open("bunny.png")
-    if err != nil {
+	if err != nil {
 		panic(err)
-    }
-    defer f2.Close()
-    b, _, err := image.Decode(f2)
-    if err != nil {
+	}
+	defer f2.Close()
+	b, _, err := image.Decode(f2)
+	if err != nil {
 		panic(err)
-    }
+	}
 	bunny = ebiten.NewImageFromImage(b)
 }
 
 const (
-//	screenWidth  = 640
-//	screenHeight = 480
+	//	screenWidth  = 640
+	//	screenHeight = 480
 	screenWidth  = 330
 	screenHeight = 360
 )
@@ -68,7 +70,7 @@ type point struct {
 }
 
 type ringbuffer struct {
-	buf []point
+	buf  []point
 	head int
 }
 
@@ -93,13 +95,16 @@ func (b *ringbuffer) read(offset int) (x, y int) {
 }
 
 type Game struct {
-	bunX int
-	bunY int
-	carrotX int
-	carrotY int
-	lastBun int
+	bunX        int
+	bunY        int
+	carrotX     int
+	carrotY     int
+	lastBun     int
 	currentTick int
-	b *ringbuffer
+	b           *ringbuffer
+
+	network   int // ms
+	blocktime int // ms
 }
 
 func (g *Game) Update() error {
@@ -109,9 +114,9 @@ func (g *Game) Update() error {
 	g.b.write(g.carrotX, g.carrotY)
 
 	// 100 ticks per second
-	if g.currentTick - g.lastBun >= 1 { // block time = 10ms
+	if g.currentTick-g.lastBun >= blocktimeTicks {
 		g.lastBun = g.currentTick
-		g.bunX, g.bunY = g.b.read(10) // network propagation time = 100ms
+		g.bunX, g.bunY = g.b.read(networkTicks)
 	}
 
 	return nil
@@ -127,7 +132,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	screen.DrawImage(bunny, op)
 
 	ebitenutil.DebugPrint(screen,
-	fmt.Sprintf("Carrot (user input): (%d, %d)\nBunny (chain state): (%d, %d)", g.carrotX, g.carrotY, g.bunX, g.bunY))
+		fmt.Sprintf("Carrot (user input): (%d, %d)\nBunny (chain state): (%d, %d)", g.carrotX, g.carrotY, g.bunX, g.bunY))
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
@@ -135,13 +140,21 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 }
 
 func main() {
-	ebiten.SetTPS(100)	// game engine ticks per second
+	nd := flag.Duration("n", time.Duration(100*time.Millisecond), "sets network propagation delay to `DURATION`")
+	bt := flag.Duration("b", time.Duration(10*time.Millisecond), "sets block time `DURATION`")
+	flag.Parse()
+	networkTicks = int((*nd).Milliseconds() / 10)
+	blocktimeTicks = int((*bt).Milliseconds() / 10)
+	if networkTicks > 3000 {
+		panic("memory overflowing")
+	}
+	ebiten.SetTPS(100) // game engine ticks per second
 	g := &Game{}
-	g.b = &ringbuffer{make([]point, 3000), 0}	// 30s of memory
+	g.b = &ringbuffer{make([]point, 3000), 0} // 30s of memory
 
 	ebiten.SetWindowSize(screenWidth, screenHeight)
 	ebiten.SetWindowTitle("Blocktime Demo")
 	if err := ebiten.RunGame(g); err != nil {
-		log.Fatal(err)
+		panic("game panicked")
 	}
 }
