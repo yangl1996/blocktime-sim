@@ -23,6 +23,7 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
+	"github.com/hajimehoshi/ebiten/v2/inpututil"
 )
 
 //go:embed carrot.png
@@ -105,12 +106,30 @@ type Game struct {
 
 	network   int // ms
 	blocktime int // ms
+
+	touches []ebiten.TouchID
+	touchGame bool
+	activeTouchID ebiten.TouchID
 }
 
 func (g *Game) Update() error {
 	g.currentTick += 1
 
-	g.carrotX, g.carrotY = ebiten.CursorPosition()
+	// touch
+	g.touches = inpututil.AppendJustPressedTouchIDs(g.touches[:0])
+	if len(g.touches) > 0 {
+		g.touchGame = true
+		g.activeTouchID = g.touches[0]
+	}
+	if g.touchGame {
+		x, y := ebiten.TouchPosition(g.activeTouchID)
+		if x != 0 || y != 0 {
+			g.carrotX, g.carrotY = x, y
+		}
+	} else {
+		g.carrotX, g.carrotY = ebiten.CursorPosition()
+	}
+
 	g.b.write(g.carrotX, g.carrotY)
 
 	// 100 ticks per second
